@@ -24,7 +24,7 @@ if (APPLE)
   find_library(COREVID_LIBRARY CoreVideo REQUIRED)
 endif (APPLE)
 
-set(SOURCE_FILES )
+set(SOURCE_FILES HalfPipe.cpp main.cpp GenericObject2.cpp)
 add_executable(sample ${SOURCE_FILES})
   target_link_libraries (sample ${GLFW3_LIBRARY} ${OPENGL_LIBRARIES} ${COCOA_LIBRARY}
      ${COREVID_LIBRARY} ${IOKIT_LIBRARY} ${GLEW_LIBRARY})
