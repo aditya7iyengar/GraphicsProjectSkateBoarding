@@ -22,11 +22,19 @@
 #include <GLFW/glfw3.h>
 #include "HalfPipe.h"
 #include "GenericObject2.h"
+#include "GenericObject1.h"
+#include "Polygon.h"
 
 using namespace std;
 
 HalfPipe pipe;
 GenericObject2 base;
+
+GenericObject2 wheels;
+Polygon deck;
+GenericObject1 truckBase;
+GenericObject1 truckAxle;
+
 void win_refresh(GLFWwindow*);
 float arc_ball_rad_square;
 int screen_ctr_x, screen_ctr_y;
@@ -102,6 +110,83 @@ void win_refresh (GLFWwindow *win) {
     glRotatef(180, 0, 1, 0);
     pipe.render();
     glPopMatrix();
+
+
+
+
+
+
+    /*SkateBoard Start*/
+
+    glPushMatrix();
+    glTranslatef(-1, -0.95, 0);
+
+    glPushMatrix();
+    glTranslatef(0.3,0 , 0);
+    wheels.render();
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(0.3,0 , -0.2);
+    glRotatef(180, 1, 0, 0);
+    wheels.render();
+    glPopMatrix();
+
+    /*Back Trucks and Wheels*/
+    glPushMatrix();
+    glTranslatef(0.2, 0, 0);
+
+    glPushMatrix();
+    glTranslatef(0.60,0 , 0);
+
+    wheels.render();
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(0.60,0 , -0.2);
+    glRotatef(180, 1, 0, 0);
+    wheels.render();
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(0.60,0 , -0.1);
+    truckAxle.render();
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(0.6,0.02 , -0.1);
+    glRotatef(45, 0, 0, 1);
+    truckBase.render();
+    glPopMatrix();
+
+    glPopMatrix();
+    /*Back Trucks and Wheels End*/
+
+
+    glPushMatrix();
+    glTranslatef(0.3,0 , -0.1);
+    //glRotatef(90, 1, 0, 0);
+    truckAxle.render();
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(0.3,0.02 , -0.1);
+    glRotatef(45, 0, 0, 1);
+    truckBase.render();
+    glPopMatrix();
+
+
+
+    glPushMatrix();
+    glTranslatef(0.55,0.07 , -0.1);
+    //glRotatef(45, 0, 0, 1);
+    deck.render();
+    glPopMatrix();
+
+    glPopMatrix();
+    /*SkateBoard End*/
+
+
     /* must swap buffer at the end of render function */
     glfwSwapBuffers(win);
 }
@@ -276,6 +361,11 @@ void init_gl() {
 void make_model() {
     pipe.build(0.5, 3, 1, 0.6, 0.6, 0.6, 0.02);
     base.build(3.0/1.414, 0, 3.0/1.414, 0, 0, 4, 0.6, 0.6, 0.6, 0.02);
+
+    wheels.build(0.045, 0.01, 0.045, 0.04, 0.04, 30, 0.9, 0.3, 0.4, 1);
+    truckAxle.build(0.01 , 0.01, .2, 20, 0.4, 0.4, 0.2);
+    truckBase.build(.055 , .055, .05, 4, 0.4, 0.1, 0.2);
+    deck.build(0.65, 0.03 , 0.2, 0.65 , 0.03, 0.1, 0.1, 0, 0.2);
 }
 
 int main() {
