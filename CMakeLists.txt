@@ -18,13 +18,15 @@ else (WIN32)
   find_package (GLEW REQUIRED STATIC)
 endif (WIN32)
 if (APPLE)
+  include_directories(./Shapes)
   include_directories(/usr/local/include)
   find_library(COCOA_LIBRARY Cocoa REQUIRED)
   find_library(IOKIT_LIBRARY IOKit REQUIRED)
   find_library(COREVID_LIBRARY CoreVideo REQUIRED)
 endif (APPLE)
 
-set(SOURCE_FILES HalfPipe.cpp main.cpp GenericObject2.cpp)
+set(SOURCE_FILES HalfPipe.cpp main.cpp GenericObject2.cpp Polygon.cpp GenericObject1.cpp
+    ./Shapes/Sphere.cpp ./Shapes/Cylinder.cpp ./Shapes/Torus.cpp)
 add_executable(sample ${SOURCE_FILES})
   target_link_libraries (sample ${GLFW3_LIBRARY} ${OPENGL_LIBRARIES} ${COCOA_LIBRARY}
      ${COREVID_LIBRARY} ${IOKIT_LIBRARY} ${GLEW_LIBRARY})

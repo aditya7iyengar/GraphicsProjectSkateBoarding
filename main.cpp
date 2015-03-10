@@ -14,6 +14,10 @@
 #endif
 
 #include <glm/glm.hpp>
+#include <sys/time.h>
+#include <math.h>
+#include <glm/gtx/transform.hpp>
+#include <glm/gtc/matrix_access.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/vector_angle.hpp>
@@ -21,16 +25,127 @@
 #undef GLFW_DLL
 #include <GLFW/glfw3.h>
 #include "HalfPipe.h"
+#include "Polygon.h"
 #include "GenericObject2.h"
-
+#include "GenericObject1.h"
 using namespace std;
 
+GenericObject2 wheels;
+Polygon deck;
+GenericObject1 truckBase;
+GenericObject1 truckAxle;
 HalfPipe pipe;
 GenericObject2 base;
+
+glm::mat4 wheel1_cf;
+glm::mat4 wheel2_cf;
+glm::mat4 wheel3_cf;
+glm::mat4 wheel4_cf;
+glm::mat4 board_cf, lambo_cf, boarder_cf;
+glm::mat4 camera_cf, light1_cf, light0_cf;
+glm::mat4 *active;
+
 void win_refresh(GLFWwindow*);
+void render_skateBoard();
 float arc_ball_rad_square;
 int screen_ctr_x, screen_ctr_y;
-glm::mat4 camera_cf; // {glm::translate(glm::mat4(1.0f), glm::vec3{0,0,-5})};
+double overall_x = 0.0;
+double overall_y = 0.0;
+double angle = 0.0;
+double down_angle = 90.0;
+float SKATEBOARD_SPEED = 0.5; /* in units per second */
+
+const float GRAVITY = 9.8;   /* m/sec^2 */
+bool is_anim_running = true;
+bool pos = true;
+
+/* light source setting */
+GLfloat light0_color[] = {1.0, 1.0, 1.0, 1.0};   /* color */
+GLfloat light1_color[] = {1.0, 1.0, 0.6, 1.0};  /* color */
+GLfloat black_color[] = {0.0, 0.0, 0.0, 1.0};   /* color */
+
+/*================================================================*
+ * Idle Callback function. This is the main engine for simulation *
+ *================================================================*/
+void simulate()
+{
+    float position = 0;
+    static double last_timestamp = 0;
+
+    const float SPEED_RAMP = 0.5/1;
+    float delta, current;
+    bool contact = true;
+
+    current = glfwGetTime();
+    if (is_anim_running) {
+        if (overall_x >= -1.3 && overall_x <= 1.3) {
+            delta = (current - last_timestamp);
+            position = SKATEBOARD_SPEED * delta;
+            board_cf *= glm::translate(glm::vec3{position, 0, 0});
+            overall_x += position;
+            cout << "overallx" << overall_x <<endl;
+        }
+        else {
+            if (angle <= 90) {
+                delta = (current - last_timestamp);
+                if (SKATEBOARD_SPEED > 0)
+                    board_cf *= glm::rotate(glm::radians(0.5f), glm::vec3{0.0f, 0.0f, 1.0f});
+                else
+                    board_cf *= glm::rotate(glm::radians(0.5f), glm::vec3{0.0f, 0.0f, -1.0f});
+                position = SKATEBOARD_SPEED * delta;
+                board_cf *= glm::translate(glm::vec3{position / 1.6, 0, 0});
+                angle += 0.5;
+                overall_y = 0.5;
+            }
+            else {
+                if ( overall_y >= 0.5) {
+                    down_angle = 90.0;
+                    delta = (current - last_timestamp);
+                    if (pos) {
+                        SKATEBOARD_SPEED -= (0.098 * delta);
+                        position = SKATEBOARD_SPEED * delta;
+                        board_cf *= glm::translate(glm::vec3{position, 0, 0});
+                        overall_y += position;
+                    }
+                    else{
+                        SKATEBOARD_SPEED += (0.098 * delta);
+                        position = SKATEBOARD_SPEED * delta;
+                        board_cf *= glm::translate(glm::vec3{-position, 0, 0});
+                        overall_y -= position;
+                    }
+                }
+                else {
+                    if (down_angle > 0) {
+                        if (SKATEBOARD_SPEED < 0)
+                            board_cf *= glm::rotate(glm::radians(0.9f), glm::vec3{0.0f, 0.0f, -1.0f});
+                        else
+                            board_cf *= glm::rotate(glm::radians(0.9f), glm::vec3{0.0f, 0.0f, 1.0f});
+                        delta = (current - last_timestamp);
+                        position = SKATEBOARD_SPEED * delta;
+                        board_cf *= glm::translate(glm::vec3{position, 0, 0});
+                        down_angle -= 0.9;
+                    }
+                    else {
+                        overall_y = 0;
+                        angle = 0;
+                        if (SKATEBOARD_SPEED < 0) {
+                            SKATEBOARD_SPEED = -0.5;
+                            overall_x = 1.3;
+                            pos = false;
+                        }
+                        else{
+                            SKATEBOARD_SPEED = 0.5;
+                            overall_x= -1.3;
+                            pos = true;
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+    last_timestamp = current;
+}
 
 void err_function (int what, const char *msg) {
     cerr << what << " " << msg << endl;
@@ -57,6 +172,93 @@ void win_resize (GLFWwindow * win, int width, int height)
     gluPerspective(60.0, static_cast<float> (width)/ static_cast<float> (height), 1, 100);
 }
 
+void render_skateBoard(){
+    glPushMatrix();
+    glMultMatrixf(glm::value_ptr(board_cf));
+
+    glPushMatrix();
+    glTranslatef(0, 0.07, 0);
+    deck.render();
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(-0.55,0,0);
+    glPushMatrix();
+    glTranslatef(0.3,0 ,0.1);
+    wheels.render();
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(0.3,0 , -0.1);
+    glRotatef(180, 1, 0, 0);
+    wheels.render();
+    glPopMatrix();
+
+    /*Back Trucks and Wheels*/
+    glPushMatrix();
+    glTranslatef(0.2, 0, 0);
+
+    glPushMatrix();
+    glTranslatef(0.60,0 , 0);
+
+    wheels.render();
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(0.60,0 , -0.1);
+    glRotatef(180, 1, 0, 0);
+    wheels.render();
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(0.60,0 , 0);
+    truckAxle.render();
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(0.6,0.02 , 0);
+    glRotatef(45, 0, 0, 1);
+    truckBase.render();
+    glPopMatrix();
+
+    glPopMatrix();
+    /*Back Trucks and Wheels End*/
+
+
+    glPushMatrix();
+    glTranslatef(0.3,0 , 0);
+    //glRotatef(90, 1, 0, 0);
+    truckAxle.render();
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(0.3,0.02 , 0);
+    glRotatef(45, 0, 0, 1);
+    truckBase.render();
+    glPopMatrix();
+    glPopMatrix();
+    glPopMatrix();
+
+}
+void render_HalfPipe (){
+    glPushMatrix();
+    glTranslatef(1.3, 0, 0);
+    pipe.render();
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(0, -1, 0);
+    glRotatef(90, 1, 0, 0);
+    glRotatef(45, 0, 0, 1);
+    base.render();
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(-1.3, 0, 0);
+    glRotatef(180, 0, 1, 0);
+    pipe.render();
+    glPopMatrix();
+}
 void win_refresh (GLFWwindow *win) {
 //    cout << __PRETTY_FUNCTION__ << endl;
     glClearColor(0, 0.7, 1, 0);
@@ -85,23 +287,14 @@ void win_refresh (GLFWwindow *win) {
      * whose 4 vertices make the tetrahedron */
 
     //enable_contents();
-    glPushMatrix();
-    glTranslatef(1.3, 0, 0);
-    pipe.render();
-    glPopMatrix();
+    /* Half Pipe */
+    render_HalfPipe();
+    /* HalfPipe ends */
 
-    glPushMatrix();
-    glTranslatef(0, -1, 0);
-    glRotatef(90, 1, 0, 0);
-    glRotatef(45, 0, 0, 1);
-    base.render();
-    glPopMatrix();
+    /*SkateBoard Start*/
+    render_skateBoard();
+    /*SkateBoard End*/
 
-    glPushMatrix();
-    glTranslatef(-1.3, 0, 0);
-    glRotatef(180, 0, 1, 0);
-    pipe.render();
-    glPopMatrix();
     /* must swap buffer at the end of render function */
     glfwSwapBuffers(win);
 }
@@ -134,71 +327,16 @@ void key_handler (GLFWwindow *win, int key, int scan_code, int action, int mods)
                 glPolygonMode(GL_FRONT, GL_LINE);
                 break;
             case GLFW_KEY_C:
-                camera_cf = camera_cf * glm::translate(glm::vec3{-5,-5,5});
+                camera_cf = camera_cf * glm::translate(glm::vec3{-5, -5, 5});
                 break;
-            case GLFW_KEY_LEFT:
+            case GLFW_KEY_S:
+                camera_cf = board_cf* glm::translate(glm::vec3{0, 0, -2});
+                camera_cf *= glm::rotate(1.57f, glm::vec3{1,0,0});
+                break;
+            case GLFW_KEY_SPACE:
+                is_anim_running ^= true;
+                break;
 
-                break;
-            case GLFW_KEY_RIGHT:
-
-                break;
-            case GLFW_KEY_UP:
-
-                break;
-            case GLFW_KEY_DOWN:
-
-
-                break;
-            case GLFW_KEY_L:
-
-                break;
-            case GLFW_KEY_D: /* lowercase 'd' */
-                /* pre mult: trans  Z-ax of the world */
-//                hex1_cf = glm::translate(glm::vec3{0, -0.5f, 0}) * hex1_cf;
-                break;
-            case GLFW_KEY_MINUS:
-                /* post mult: rotate around Z-ax of the hex nut */
-//                hex1_cf = hex1_cf * glm::rotate(1.0f, glm::vec3{0, 0, 1});
-                break;
-            case GLFW_KEY_ESCAPE:
-                glfwSetWindowShouldClose(win, true);
-                break;
-            case GLFW_KEY_1:
-                this_vec = glm::normalize(glm::vec3{-1, 1, 1});
-                N = glm::cross(glm::vec3{-0.5, 0, 0}, this_vec);
-                theta = glm::angle(glm::vec3{0, 0, 0}, this_vec);
-                camera_cf = current_cam * glm::toMat4(glm::normalize(glm::quat{cos(theta / 2), sin(theta / 2) * N}));
-
-                win_refresh(win);
-                break;
-            case GLFW_KEY_2:
-                this_vec = glm::normalize(glm::vec3{1, 1, 1});
-                N = glm::cross(glm::vec3{0.5, 0, 0}, this_vec);
-                theta = glm::angle(glm::vec3{0, 0, 0}, this_vec);
-                camera_cf = current_cam * glm::toMat4(glm::normalize(glm::quat{cos(theta / 2), sin(theta / 2) * N}));
-                //camera_cf =  hex1_cf;
-                win_refresh(win);
-                break;
-            case GLFW_KEY_3:
-                this_vec = glm::normalize(glm::vec3{1, 1, 1});
-                N = glm::cross(glm::vec3{0, 0, 0.5}, this_vec);
-                theta = glm::angle(glm::vec3{0, 0, 0}, this_vec);
-                camera_cf = current_cam * glm::toMat4(glm::normalize(glm::quat{cos(theta / 2), sin(theta / 2) * N}));
-
-                win_refresh(win);
-                break;
-            case GLFW_KEY_4:
-                this_vec = glm::normalize(glm::vec3{1, -1, 1});
-                N = glm::cross(glm::vec3{0, -0.5, 0}, this_vec);
-                theta = glm::angle(glm::vec3{0, 0, 0}, this_vec);
-                camera_cf = current_cam * glm::toMat4(glm::normalize(glm::quat{cos(theta / 2), sin(theta / 2) * N}));
-
-                win_refresh(win);
-                break;
-            case GLFW_KEY_5:
-            case GLFW_KEY_6:
-                /* rebuild the model at different level of detail */
-                break;
         }
     }
     win_refresh(win);
@@ -274,12 +412,17 @@ void init_gl() {
 }
 
 void make_model() {
+    board_cf = glm::translate( glm::vec3{0,-0.95,0});
     pipe.build(0.5, 3, 1, 0.6, 0.6, 0.6, 0.02);
     base.build(3.0/1.414, 0, 3.0/1.414, 0, 0, 4, 0.6, 0.6, 0.6, 0.02);
+
+    wheels.build(0.045, 0.01, 0.045, 0.04, 0.04, 30, 0.9, 0.3, 0.4, 1);
+    truckAxle.build(0.01 , 0.01, .2, 20, 0.4, 0.4, 0.2);
+    truckBase.build(.055 , .055, .05, 4, 0.4, 0.1, 0.2);
+    deck.build(0.65, 0.03 , 0.2, 0.65 , 0.03, 0.1, 0.1, 0, 0.2);
 }
 
 int main() {
-    cout << "Hello" << endl;
 
     if(!glfwInit()) {
         cerr << "Can't initialize GLFW" << endl;
@@ -287,19 +430,14 @@ int main() {
         exit (EXIT_FAILURE);
     }
 
-    glfwSetErrorCallback(err_function);
     GLFWwindow * win;
     glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
-    win = glfwCreateWindow(100, 50, "Test", NULL, NULL);
-    if (!win) {
-        cerr << "Can't create window" << endl;
-        exit (EXIT_FAILURE);
-    }
+    win = glfwCreateWindow(50, 50, "BoarderAnimation", NULL, NULL);
 
     glfwSetWindowRefreshCallback(win, win_refresh);
     /* On Mac with Retina display there is a discrepancy between units measured in
      * "screen coordinates" and "pixels" */
-    // glfwSetWindowSizeCallback(win, win_resize);  /* use this for non-retina displays */
+    glfwSetWindowSizeCallback(win, win_resize);  /* use this for non-retina displays */
     glfwSetFramebufferSizeCallback(win, win_resize); /* use this for retina displays */
     glfwSetKeyCallback(win, key_handler);
     glfwSetCursorPosCallback(win, cursor_handler);
@@ -318,15 +456,17 @@ int main() {
     printf ("GL Version is %s\n", version);
 
 
-    glfwSetWindowSize(win, 450, 300);
+    glfwSetWindowSize(win, 800, 800);
     glfwSwapInterval(1);
     init_gl();
     make_model();
 
-    int ev_num = 0;
     win_refresh(win);
+
     while (!glfwWindowShouldClose(win)) {
-        glfwWaitEvents();
+        glfwPollEvents();
+        simulate();
+        win_refresh(win);
     }
     glfwDestroyWindow(win);
     glfwTerminate();

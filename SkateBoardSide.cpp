@@ -1,22 +1,18 @@
-#include "HalfPipe.h"
+#include "SkateBoardSide.h"
 #include <cmath>
-#include <glm/vec3.hpp>
-#include <glm/gtc/quaternion.hpp>
 
-HalfPipe::~HalfPipe(){
+SkateBoardSide::~SkateBoardSide(){
     glDeleteBuffers(1, &vertex_buffer);
     glDeleteBuffers(1, &index_buffer);
     glDeleteBuffers(1, &color_buffer);
-    glDeleteBuffers(1, &normal_buffer);
 }
 
-void HalfPipe::build(float length_up,float breadth, float height,
+void SkateBoardSide::build(float length,float breadth, float height,
         float clr1, float clr2, float clr3, float ref_quotient){
 
     glGenBuffers(1, &vertex_buffer);
     glGenBuffers(1, &index_buffer);
     glGenBuffers(1, &color_buffer);
-    glGenBuffers(1, &normal_buffer);
 
     num_divisions = 10;
 
@@ -115,19 +111,6 @@ void HalfPipe::build(float length_up,float breadth, float height,
     vertices.push_back(-height);
     vertices.push_back(0);
 
-    for (int k = 0; k < num_divisions; k++){
-        float xTop = height * cos(temp_angle);
-        float yTop = -height * sin(temp_angle);
-        float xBot = height * cos(temp_angle);
-        float yBot = -height * sin(temp_angle);
-        glm::vec3 vertTangent{xTop - xBot, yTop - yBot, breadth};
-        glm::vec3 horTangent{sin(temp_angle), -cos(temp_angle), 0};
-        glm::vec3 normal = glm::normalize(glm::cross(vertTangent, horTangent));
-        normals.push_back(normal.x);
-        normals.push_back(normal.y);
-        normals.push_back(normal.z);
-    }
-
 
     for (int k =0; k < num_divisions; k++){
         indices.push_back(2*k);
@@ -177,13 +160,6 @@ void HalfPipe::build(float length_up,float breadth, float height,
     glUnmapBuffer(GL_ARRAY_BUFFER);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    glBindBuffer (GL_ARRAY_BUFFER, normal_buffer);
-    /* allocate in GPU and copy from CPU */
-    glBufferData (GL_ARRAY_BUFFER, normals.size() * sizeof(float),
-            normals.data(), GL_STATIC_DRAW);
-    /* deselect the buffer */
-    glBindBuffer (GL_ARRAY_BUFFER, 0);
-
     glBindBuffer (GL_ARRAY_BUFFER, color_buffer);
     glBufferData (GL_ARRAY_BUFFER,
             color.size() * sizeof(GLfloat), color.data(), GL_STATIC_DRAW);
@@ -193,15 +169,13 @@ void HalfPipe::build(float length_up,float breadth, float height,
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
-void HalfPipe::render() const {
+void SkateBoardSide::render() const {
     glPushAttrib(GL_ENABLE_BIT);
     //glDisableClientState(GL_COLOR_ARRAY);
     glBindBuffer (GL_ARRAY_BUFFER, vertex_buffer);
     glVertexPointer(3, GL_FLOAT, 0, 0);
     glBindBuffer(GL_ARRAY_BUFFER, color_buffer);
     glColorPointer(3, GL_FLOAT, 0, 0);
-    glBindBuffer(GL_ARRAY_BUFFER, normal_buffer);
-    glNormalPointer(GL_FLOAT, 0, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
 
     glDrawElements(GL_QUAD_STRIP, 2*num_divisions, GL_UNSIGNED_SHORT, 0);
