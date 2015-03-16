@@ -24,10 +24,13 @@
 #include <glm/gtx/io.hpp>
 #undef GLFW_DLL
 #include <GLFW/glfw3.h>
+#include <OpenGL/OpenGL.h>
 #include "HalfPipe.h"
 #include "Polygon.h"
 #include "GenericObject2.h"
 #include "GenericObject1.h"
+#include "Shapes/Cylinder.h"
+#include "Shapes/Sphere.h"
 using namespace std;
 
 GenericObject2 wheels;
@@ -36,6 +39,48 @@ GenericObject1 truckBase;
 GenericObject1 truckAxle;
 HalfPipe pipe;
 GenericObject2 base;
+GenericObject1 body;
+GenericObject1 back_arm;
+GenericObject1 fore_arm;
+GenericObject1 thigh;
+GenericObject1 leg;
+Polygon foot;
+Polygon head;
+Cylinder spot;
+Sphere sphere;
+//gluDisk floor;
+Polygon temp_floor;
+Polygon ramp;
+Polygon block;
+Polygon stair1;
+Polygon stair2;
+Polygon stair3;
+Polygon stair4;
+GLUquadric *rails  = gluNewQuadric();
+
+static float COPPER_AMBIENT[] = {0.191250, 0.073500, 0.022500, 1.000000};
+static float COPPER_DIFFUSE[] = {0.703800, 0.270480, 0.082800, 1.000000};
+static float COPPER_SPECULAR[] = {0.256777, 0.137622, 0.086014, 1.000000};
+
+static float SILVER_AMBIENT[] = {0.192250, 0.192250, 0.192250, 1.000000};
+static float SILVER_DIFFUSE[] = {0.507540, 0.507540, 0.507540, 1.000000};
+static float SILVER_SPECULAR[] = {0.508273, 0.508273, 0.508273, 1.000000};
+
+static float EMERALD_AMBIENT[] = {0.021500, 0.174500, 0.021500, 0.550000};
+static float EMERALD_DIFFUSE[] = {0.075680, 0.614240, 0.075680, 0.550000};
+static float EMERALD_SPECULAR[] = {0.633000, 0.727811, 0.633000, 0.550000};
+
+static float BLACKPLASTIC_AMBIENT[] = {0.000000, 0.000000, 0.000000, 1.000000};
+static float BLACKPLASTIC_DIFFUSE[] = {0.010000, 0.010000, 0.010000, 1.000000};
+static float BLACKPLASTIC_SPECULAR[] = {0.500000, 0.500000, 0.500000, 1.000000};
+
+static float RUBY_AMBIENT[] = {0.174500, 0.011750, 0.011750, 0.550000};
+static float RUBY_DIFFUSE[] = {0.614240, 0.041360, 0.041360, 0.550000};
+static float RUBY_SPECULAR[] = {0.727811, 0.626959, 0.626959, 0.550000};
+
+static float BLACKRUBBER_AMBIENT[] = {0.020000, 0.020000, 0.020000, 1.000000};
+static float BLACKRUBBER_DIFFUSE[] = {0.010000, 0.010000, 0.010000, 1.000000};
+static float BLACKRUBBER_SPECULAR[] = {00.400000, 0.400000, 0.400000, 1.000000};
 
 glm::mat4 wheel1_cf;
 glm::mat4 wheel2_cf;
@@ -49,16 +94,24 @@ void win_refresh(GLFWwindow*);
 void render_skateBoard();
 float arc_ball_rad_square;
 int screen_ctr_x, screen_ctr_y;
-double overall_x = 0.0;
-double overall_y = 0.0;
-double angle = 0.0;
-double down_angle = 90.0;
-float SKATEBOARD_SPEED = 0.5; /* in units per second */
+double board_x = 16.0;
+double  board_y = 0.0;
+double board_z = 0.0;
+float radians = -M_PI/2;
+float sec_angle = M_PI/50;
+float total_spin = 0.0;
+bool go_forward = false;
+float done_angle = 0.0;
+float proj_speed_x = 0.0;
+float proj_speed_y = 0.0;
+float rail_angle = M_PI/2;
+float SKATEBOARD_SPEED = 2.6; /* in units per second */
 
-const float GRAVITY = 9.8;   /* m/sec^2 */
+const float GRAVITY = .9;   /* m/sec^2 */
 bool is_anim_running = true;
 bool pos = true;
-
+bool jumped = false;
+float jump_angle = 0.0;
 /* light source setting */
 GLfloat light0_color[] = {1.0, 1.0, 1.0, 1.0};   /* color */
 GLfloat light1_color[] = {1.0, 1.0, 0.6, 1.0};  /* color */
@@ -71,78 +124,284 @@ void simulate()
 {
     float position = 0;
     static double last_timestamp = 0;
-
-    const float SPEED_RAMP = 0.5/1;
     float delta, current;
-    bool contact = true;
 
     current = glfwGetTime();
     if (is_anim_running) {
-        if (overall_x >= -1.3 && overall_x <= 1.3) {
+        if (board_x > 3.8){
+            delta = (current - last_timestamp);
+            if (board_x >= 11.8) {
+                delta = (current - last_timestamp);
+                board_cf *= glm::translate(glm::vec3{-2.6 * delta, 0, 0});
+                boarder_cf *= glm::translate(glm::vec3{-2.6 * delta, 0, 0});
+                board_x -= 2.6 * delta;
+            }
+            else {
+                if (board_y < 0.5) {
+                    board_x += SKATEBOARD_SPEED * delta * cos(33.7);
+                    board_y += SKATEBOARD_SPEED * delta * sin(33.7);
+                    SKATEBOARD_SPEED -= GRAVITY * delta * sin (33.7);
+                    board_cf = glm::translate(glm::vec3{board_x-1,board_y,0});
+                    boarder_cf = glm::translate(glm::vec3{board_x-1,board_y+.4,0});
+                    float angle_ramp = 0.588;
+                    board_cf *= glm::rotate(angle_ramp, glm::vec3{0.0, 0.0, -1.0});
+                    boarder_cf *= glm::rotate(angle_ramp, glm::vec3{0.0, 0.0, -1.0});
+                    proj_speed_y = SKATEBOARD_SPEED * sin(33.7);
+                    proj_speed_x = SKATEBOARD_SPEED * cos(33.7);
+                }
+                else {
+                    proj_speed_y -= delta * GRAVITY/1.2;
+                    board_y += proj_speed_y * delta;
+                    board_x += proj_speed_x * delta;
+                    board_cf = glm::translate(glm::vec3{board_x-1,board_y,0});
+                    boarder_cf = glm::translate(glm::vec3{board_x-1,board_y+.4,0});
+                    cout << "board_x" << board_x << endl;
+                    cout << "board_y" << board_y << endl;
+                    if (proj_speed_y < 0){
+                        SKATEBOARD_SPEED = -2.6;
+                        radians = 0.0;
+                    }
+                }
+
+            }
+        }
+        else if ( board_x>= -1.3 && board_x <= 1.3) {
+            if (SKATEBOARD_SPEED > 0)
+                SKATEBOARD_SPEED = 2.6;
+            else
+                SKATEBOARD_SPEED = -2.6;
             delta = (current - last_timestamp);
             position = SKATEBOARD_SPEED * delta;
             board_cf *= glm::translate(glm::vec3{position, 0, 0});
-            overall_x += position;
-            cout << "overallx" << overall_x <<endl;
+            boarder_cf *= glm::translate(glm::vec3{position, 0, 0});
+            board_x += position;
+            total_spin = 0.0;
+            cout << "board_x" << board_x << endl;
         }
-        else {
-            if (angle <= 90) {
-                delta = (current - last_timestamp);
-                if (SKATEBOARD_SPEED > 0)
-                    board_cf *= glm::rotate(glm::radians(0.5f), glm::vec3{0.0f, 0.0f, 1.0f});
-                else
-                    board_cf *= glm::rotate(glm::radians(0.5f), glm::vec3{0.0f, 0.0f, -1.0f});
-                position = SKATEBOARD_SPEED * delta;
-                board_cf *= glm::translate(glm::vec3{position / 1.6, 0, 0});
-                angle += 0.5;
-                overall_y = 0.5;
+        else if(board_x > 0){
+            delta = (current - last_timestamp);
+            SKATEBOARD_SPEED -= GRAVITY*delta;
+            position = SKATEBOARD_SPEED*delta;
+           if (SKATEBOARD_SPEED > 0){
+               if (radians >= 0){
+                   board_cf *= glm::translate(glm::vec3{position, 0, 0});
+                   boarder_cf *= glm::translate(glm::vec3{position, 0, 0});
+                   board_y += position;
+                   if ( total_spin <= 2* M_PI) {
+                       board_cf *= glm::rotate(sec_angle, glm::vec3{1.0, 0.0, 0.0});
+                       boarder_cf *= glm::rotate(sec_angle, glm::vec3{1.0, 0.0, 0.0});
+                       total_spin += sec_angle;
+                   }
+                   if (board_y >= 1.5){
+
+                   }
+                   cout << "board_y" << board_x << endl;
+               }
+               else{
+                   radians += SKATEBOARD_SPEED*delta;
+                   board_cf = glm::translate(glm::vec3{1.2+ cos(radians), sin(radians), 0});
+                   boarder_cf = glm::translate(glm::vec3{1.2+ cos(radians), sin(radians)+0.4, 0});
+                   float angle = radians + M_PI/2;
+                   board_cf *= glm::rotate((angle), glm::vec3{0.0,0.0,1.0f});
+                   board_cf *= glm::translate( glm::vec3{0,0.05,0});
+                   boarder_cf *= glm::rotate((angle), glm::vec3{0.0,0.0,1.0f});
+                   boarder_cf *= glm::translate( glm::vec3{0,0.05,0});
+                   //board_cf *= glm::rotate(glm::radians(0.5f), glm::vec3{0.0f, 0.0f, 1.0f});
+                   board_y += position;
+                   cout << "radians" << radians << endl;
+               }
+           }
+           else{
+               if (board_y >=1.5){
+                   board_cf *= glm::translate(glm::vec3{position, 0, 0});
+                   boarder_cf *= glm::translate(glm::vec3{position, 0, 0});
+                   if ( total_spin <= 2* M_PI) {
+                       board_cf *= glm::rotate(sec_angle, glm::vec3{1.0, 0.0, 0.0});
+                       boarder_cf *= glm::rotate(sec_angle, glm::vec3{1.0, 0.0, 0.0});
+                       total_spin += sec_angle;
+                   }
+                   if (board_y >= 1.5){
+
+                   }
+                   board_y += position;
+                   cout << "board_y" << board_x << endl;
+               }
+               else {
+                   radians += SKATEBOARD_SPEED*delta;
+                   board_cf = glm::translate(glm::vec3{1.2+ cos(radians), sin(radians), 0});
+                   boarder_cf = glm::translate(glm::vec3{1.2+ cos(radians), sin(radians)+0.4, 0});
+                   float angle = radians + M_PI/2;
+                   board_cf *= glm::rotate((angle), glm::vec3{0.0,0.0,1.0f});
+                   boarder_cf *= glm::rotate((angle), glm::vec3{0.0,0.0,1.0f});
+                   board_y = 0;
+                   if  (radians <= -M_PI/2){
+                        board_x = 1.29;
+                        board_y = 0.0;
+                        board_cf = glm::translate(glm::vec3{1.29, -0.95, 0});
+                        boarder_cf = glm::translate(glm::vec3{1.29, -0.5, 0});
+                   }
+                   cout << "radians" << radians << endl;
+               }
+           }
+        }
+        else if (!go_forward){
+            delta = (current - last_timestamp);
+            SKATEBOARD_SPEED += GRAVITY*delta;
+            position = SKATEBOARD_SPEED*delta;
+            if (SKATEBOARD_SPEED < 0){
+                if (radians >= 0){
+                    board_cf *= glm::translate(glm::vec3{position, 0, 0});
+                    boarder_cf *= glm::translate(glm::vec3{position, 0, 0});
+                    board_y -= position;
+                    if ( total_spin <= 2* M_PI) {
+                        board_cf *= glm::rotate(sec_angle, glm::vec3{1.0, 0.0, 0.0});
+                        boarder_cf *= glm::rotate(sec_angle, glm::vec3{1.0, 0.0, 0.0});
+                        total_spin += sec_angle;
+                    }
+                    if (board_y >= 1.5){
+
+                    }
+                    cout << "board_y" << board_y << endl;
+                }
+                else{
+                    radians -= SKATEBOARD_SPEED*delta;
+                    board_cf = glm::translate(glm::vec3{-1.2- cos(radians), sin(radians), 0});
+                    boarder_cf = glm::translate(glm::vec3{-1.2- cos(radians), sin(radians)+0.4, 0});
+                    float angle = radians + M_PI/2;
+                    board_cf *= glm::rotate((angle), glm::vec3{0.0,0.0,-1.0f});
+                    boarder_cf *= glm::rotate((angle), glm::vec3{0.0,0.0,-1.0f});
+                    //board_cf *= glm::rotate(glm::radians(0.5f), glm::vec3{0.0f, 0.0f, 1.0f});
+                    board_y -= position;
+                    cout << "radians" << radians << endl;
+                }
             }
-            else {
-                if ( overall_y >= 0.5) {
-                    down_angle = 90.0;
-                    delta = (current - last_timestamp);
-                    if (pos) {
-                        SKATEBOARD_SPEED -= (0.098 * delta);
-                        position = SKATEBOARD_SPEED * delta;
-                        board_cf *= glm::translate(glm::vec3{position, 0, 0});
-                        overall_y += position;
+            else{
+                if (board_y >=1.5){
+                    board_cf *= glm::translate(glm::vec3{position, 0, 0});
+                    boarder_cf *= glm::translate(glm::vec3{position, 0, 0});
+                    board_y -= position;
+                    if ( total_spin <= 2* M_PI) {
+                        board_cf *= glm::rotate(sec_angle, glm::vec3{1.0, 0.0, 0.0});
+                        boarder_cf *= glm::rotate(sec_angle, glm::vec3{1.0, 0.0, 0.0});
+                        total_spin += sec_angle;
                     }
-                    else{
-                        SKATEBOARD_SPEED += (0.098 * delta);
-                        position = SKATEBOARD_SPEED * delta;
-                        board_cf *= glm::translate(glm::vec3{-position, 0, 0});
-                        overall_y -= position;
+                    if (board_y >= 1.5){
+
                     }
+                    cout << "board_y" << board_x << endl;
                 }
                 else {
-                    if (down_angle > 0) {
-                        if (SKATEBOARD_SPEED < 0)
-                            board_cf *= glm::rotate(glm::radians(0.9f), glm::vec3{0.0f, 0.0f, -1.0f});
-                        else
-                            board_cf *= glm::rotate(glm::radians(0.9f), glm::vec3{0.0f, 0.0f, 1.0f});
-                        delta = (current - last_timestamp);
-                        position = SKATEBOARD_SPEED * delta;
-                        board_cf *= glm::translate(glm::vec3{position, 0, 0});
-                        down_angle -= 0.9;
-                    }
-                    else {
-                        overall_y = 0;
-                        angle = 0;
-                        if (SKATEBOARD_SPEED < 0) {
-                            SKATEBOARD_SPEED = -0.5;
-                            overall_x = 1.3;
-                            pos = false;
-                        }
-                        else{
-                            SKATEBOARD_SPEED = 0.5;
-                            overall_x= -1.3;
-                            pos = true;
-                        }
+                    radians -= SKATEBOARD_SPEED*delta;
+                    board_cf = glm::translate(glm::vec3{-1.2- cos(radians), sin(radians), 0});
+                    boarder_cf = glm::translate(glm::vec3{-1.2- cos(radians), sin(radians)+0.4, 0});
+                    float angle = radians + M_PI/2;
+                    board_cf *= glm::rotate((angle), glm::vec3{0.0,0.0,-1.0f});
+                    boarder_cf *= glm::rotate((angle), glm::vec3{0.0,0.0,-1.0f});
+                    board_y -= position;
+                    if  (radians <= -M_PI/2){
+                        board_x = -1.29;
+                        board_y = 0.0;
+                        board_cf = glm::translate(glm::vec3{-1.29, -0.95, 0});
+                        boarder_cf = glm::translate(glm::vec3{-1.29, -0.5, 0});
                     }
                 }
             }
         }
+        else if (done_angle < M_PI/2){
+            delta = (current - last_timestamp);
+            SKATEBOARD_SPEED += GRAVITY*delta;
+            position = SKATEBOARD_SPEED*delta;
+            if (radians >= 0){
+                if (board_y <= 1.0) {
+                    board_cf = glm::translate(glm::vec3{-2.5, 0.05, 0});
+                    boarder_cf = glm::translate(glm::vec3{-2.5, 0.45, 0});
+                    board_y = 1.0;
+                }
+                board_cf *= glm::rotate(sec_angle, glm::vec3{0.0, 0.0, 1.0});
+                boarder_cf *= glm::rotate(sec_angle, glm::vec3{0.0, 0.0, 1.0});
+                done_angle += sec_angle;
+            }
+            else{
+                radians -= SKATEBOARD_SPEED*delta;
+                board_cf = glm::translate(glm::vec3{-1.2- cos(radians), sin(radians), 0});
+                boarder_cf = glm::translate(glm::vec3{-1.2- cos(radians), sin(radians)+0.4, 0});
+                float angle = radians + M_PI/2;
+                board_cf *= glm::rotate((angle), glm::vec3{0.0,0.0,-1.0f});
+                boarder_cf *= glm::rotate((angle), glm::vec3{0.0,0.0,-1.0f});
+                //board_cf *= glm::rotate(glm::radians(0.5f), glm::vec3{0.0f, 0.0f, 1.0f});
+                board_y -= position;
+                cout << "radians" << radians << endl;
+            }
+        }
+        else if (board_x > -5.3) {
+            if (rail_angle != 0.0) {
+                board_cf = glm::translate(glm::vec3{-2.5, 0.05, 0});
+                boarder_cf = glm::translate(glm::vec3{-2.5, 0.45, 0});
+                board_x = -2.5;
+                rail_angle = 0.0;
+            }
+            else {
+                delta = (current - last_timestamp);
+                position = SKATEBOARD_SPEED * delta;
+                board_cf *= glm::translate(glm::vec3{position, 0, 0});
+                boarder_cf *= glm::translate(glm::vec3{position, 0, 0});
+                board_x += position;
+                jumped = false;
+                jump_angle = 0.0;
+            }
+        }
+        else{
+            delta = (current - last_timestamp);
+            position = SKATEBOARD_SPEED * delta;
+            if (!jumped){
+                board_cf *= glm::translate(glm::vec3{position, -position/3 ,0});
+                board_cf *= glm::rotate(sec_angle, glm::vec3{0.0, 1.0, 0.0});
+                jump_angle +=sec_angle;
+                if (jump_angle >= M_PI/2) {
+                    jumped = true;
+                    board_cf = glm::translate(glm::vec3{-6,0.5,0});
+                    float pi_ov_four = M_PI/4;
+                    board_cf *= glm::rotate(pi_ov_four, glm::vec3{0,0,1.0});
+                    board_cf *= glm::rotate(2*pi_ov_four, glm::vec3{0,1.0,0});
+                    board_x = -6;
+                    SKATEBOARD_SPEED = -2.6;
+                }
+            }
+            else if (board_x > -7){
+                SKATEBOARD_SPEED += delta * GRAVITY;
+                board_cf *= glm::translate(glm::vec3{0,0,position});
+                board_x += position*cos(M_PI/4);
+                if (board_x <= -7){
+                    board_cf = glm::translate(glm::vec3{-8.2,-0.95,0});
+                    board_x = -8.2;
+                }
+            }
 
+            else {
+                if ( board_x > - 10){
+                    SKATEBOARD_SPEED += delta * GRAVITY;
+                    board_cf *= glm::translate(glm::vec3{position,0,0});
+                    board_x += position;
+                }
+                else {
+                    board_x = 16.0;
+                    board_y = 0.0;
+
+                    radians = -M_PI/2;
+                    sec_angle = M_PI/50;
+                    total_spin = 0.0;
+                    go_forward = false;
+                    done_angle = 0.0;
+                    proj_speed_x = 0.0;
+                    proj_speed_y = 0.0;
+                    rail_angle = M_PI/2;
+                    SKATEBOARD_SPEED = 2.6; /* in units per second */
+                    jumped = false;
+                    jump_angle = 0.0;
+                    board_cf = glm::translate( glm::vec3{16,-0.95,0});
+                }
+            }
+        }
     }
     last_timestamp = current;
 }
@@ -176,10 +435,20 @@ void render_skateBoard(){
     glPushMatrix();
     glMultMatrixf(glm::value_ptr(board_cf));
 
+    glMaterialfv(GL_FRONT, GL_AMBIENT, RUBY_AMBIENT);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, RUBY_DIFFUSE);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, RUBY_SPECULAR);
+    glMaterialf(GL_FRONT, GL_SHININESS, 10.0);
+
     glPushMatrix();
     glTranslatef(0, 0.07, 0);
     deck.render();
     glPopMatrix();
+
+    glMaterialfv(GL_FRONT, GL_AMBIENT, COPPER_AMBIENT);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, COPPER_DIFFUSE);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, COPPER_SPECULAR);
+    glMaterialf(GL_FRONT, GL_SHININESS, 40.0);
 
     glPushMatrix();
     glTranslatef(-0.55,0,0);
@@ -199,7 +468,7 @@ void render_skateBoard(){
     glTranslatef(0.2, 0, 0);
 
     glPushMatrix();
-    glTranslatef(0.60,0 , 0);
+    glTranslatef(0.60,0 , 0.1);
 
     wheels.render();
     glPopMatrix();
@@ -209,6 +478,11 @@ void render_skateBoard(){
     glRotatef(180, 1, 0, 0);
     wheels.render();
     glPopMatrix();
+
+    glMaterialfv(GL_FRONT, GL_AMBIENT, SILVER_AMBIENT);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, SILVER_DIFFUSE);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, SILVER_SPECULAR);
+    glMaterialf(GL_FRONT, GL_SHININESS, 20.0);
 
     glPushMatrix();
     glTranslatef(0.60,0 , 0);
@@ -240,6 +514,72 @@ void render_skateBoard(){
     glPopMatrix();
 
 }
+
+void render_boarder(){
+    glPushMatrix();
+    glMultMatrixf(glm::value_ptr(boarder_cf));
+
+    glMaterialfv(GL_FRONT, GL_AMBIENT, BLACKPLASTIC_AMBIENT);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, BLACKPLASTIC_DIFFUSE);
+    glMaterialfv(GL_FRONT, GL_SPECULAR,BLACKPLASTIC_SPECULAR);
+    glMaterialf(GL_FRONT, GL_SHININESS, 90.0);
+
+    glPushMatrix();
+    glRotatef(90,-1,0,0);
+
+    body.render();
+
+    glMaterialfv(GL_FRONT, GL_AMBIENT, COPPER_AMBIENT);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, COPPER_DIFFUSE);
+    glMaterialfv(GL_FRONT, GL_SPECULAR,COPPER_SPECULAR);
+    glMaterialf(GL_FRONT, GL_SHININESS, 10.0);
+
+    glPushMatrix();
+    glTranslatef(-0.12,0,0.05);
+    glRotatef(30,0,1,0);
+    back_arm.render();
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(0.12,0,0.05);
+    glRotatef(30,0,-1,0);
+    back_arm.render();
+    glPopMatrix();
+
+    glMaterialfv(GL_FRONT, GL_AMBIENT, EMERALD_AMBIENT);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, EMERALD_DIFFUSE);
+    glMaterialfv(GL_FRONT, GL_SPECULAR,EMERALD_SPECULAR);
+    glMaterialf(GL_FRONT, GL_SHININESS, 80.0);
+
+    glPushMatrix();
+    glTranslatef(0.06,0,-0.24);
+    glRotatef(10,0,-1,0);
+    back_arm.render();
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(-0.06,0,-0.24);
+    glRotatef(10,0,1,0);
+    back_arm.render();
+    glPopMatrix();
+
+    glMaterialfv(GL_FRONT, GL_AMBIENT, COPPER_AMBIENT);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, COPPER_DIFFUSE);
+    glMaterialfv(GL_FRONT, GL_SPECULAR,COPPER_SPECULAR);
+    glMaterialf(GL_FRONT, GL_SHININESS, 30.0);
+
+    glPushMatrix();
+    glTranslatef(0.0,0.0,0.2);
+    head.render();
+    glPopMatrix();
+
+    glPopMatrix();
+
+    glPopMatrix();
+
+
+}
+
 void render_HalfPipe (){
     glPushMatrix();
     glTranslatef(1.3, 0, 0);
@@ -258,10 +598,35 @@ void render_HalfPipe (){
     glRotatef(180, 0, 1, 0);
     pipe.render();
     glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(-4.3,-0.5,0);
+    block.render();
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(-5.95,-0.6,0);
+    stair1.render();
+    glPopMatrix();
+    glPushMatrix();
+    glTranslatef(-6.2,-0.7,0);
+    stair2.render();
+    glPopMatrix();
+    glPushMatrix();
+    glTranslatef(-6.45,-0.8,0);
+    stair3.render();
+    glPopMatrix();
+    glPushMatrix();
+    glTranslatef(-6.7,-0.9,0);
+    stair4.render();
+    glPopMatrix();
+
 }
+
+
 void win_refresh (GLFWwindow *win) {
 //    cout << __PRETTY_FUNCTION__ << endl;
-    glClearColor(0, 0.7, 1, 0);
+    glClearColor(0, 0.0, 0.0, 1);
     glClear(GL_COLOR_BUFFER_BIT| GL_DEPTH_BUFFER_BIT);
 
     glMatrixMode (GL_MODELVIEW);
@@ -283,10 +648,108 @@ void win_refresh (GLFWwindow *win) {
     glVertex3f (0, 0, S * 1.1);
     glEnd();
 
+    glDisable (GL_COLOR_MATERIAL);
     /* The following two groups of GL_LINE_LOOP and GL_LINES draw the square block
      * whose 4 vertices make the tetrahedron */
 
     //enable_contents();
+
+    /* place the light source in the scene. */
+    glLightfv (GL_LIGHT0, GL_POSITION, glm::value_ptr(glm::column(light0_cf, 3)));
+
+    /* recall that the last column of a CF is the origin of the CF */
+    glLightfv (GL_LIGHT1, GL_POSITION, glm::value_ptr(glm::column(light1_cf, 3)));
+
+    /* we use the Z-axis of the light CF as the spotlight direction */
+    glLightfv(GL_LIGHT1, GL_SPOT_DIRECTION, glm::value_ptr(glm::column(light1_cf, 2)));
+
+    glPushMatrix();
+    {
+        glMultMatrixf(glm::value_ptr(light0_cf));
+
+        /* Render light-0 as an emmisive object */
+        if (glIsEnabled(GL_LIGHT0))
+            glMaterialfv(GL_FRONT, GL_EMISSION, light0_color);
+        sphere.render();
+        glMaterialfv(GL_FRONT, GL_EMISSION, black_color);
+    }
+    glPopMatrix();
+
+    glMaterialfv(GL_FRONT, GL_AMBIENT, SILVER_AMBIENT);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, SILVER_DIFFUSE);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, SILVER_SPECULAR);
+    glMaterialf(GL_FRONT, GL_SHININESS, 1.0);
+
+    glPushMatrix();
+    glRotatef(90,1,0,0);
+    glTranslatef(0,-15,1.05);
+    temp_floor.render();
+    glPopMatrix();
+
+
+    glMaterialfv(GL_FRONT, GL_AMBIENT, SILVER_AMBIENT);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, SILVER_DIFFUSE);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, SILVER_SPECULAR);
+    glMaterialf(GL_FRONT, GL_SHININESS, 80.0);
+
+    glPushMatrix();
+    glMultMatrixf(glm::value_ptr(light1_cf));
+    spot.render();
+    glPopMatrix();
+
+    glMaterialfv(GL_FRONT, GL_AMBIENT, SILVER_AMBIENT);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, SILVER_DIFFUSE);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, SILVER_SPECULAR);
+    glMaterialf(GL_FRONT, GL_SHININESS, 8.0);
+
+    glPushMatrix();
+    glRotatef(90,0,1,0);
+    glRotatef(-90,1,0,0);
+    glTranslatef(0,-10,-0.5);
+    ramp.render();
+    glPopMatrix();
+
+    glMaterialfv(GL_FRONT, GL_AMBIENT, SILVER_AMBIENT);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, SILVER_DIFFUSE);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, SILVER_SPECULAR);
+    glMaterialf(GL_FRONT, GL_SHININESS, 8.0);
+
+    glPushMatrix();
+    glTranslatef(4, -1, 0);
+    glRotatef(90, 1, 0, 0);
+    glRotatef(45, 0, 0, 1);
+    base.render();
+    glPopMatrix();
+
+    glMaterialfv(GL_FRONT, GL_AMBIENT, SILVER_AMBIENT);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, SILVER_DIFFUSE);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, SILVER_SPECULAR);
+    glMaterialf(GL_FRONT, GL_SHININESS, 8.0);
+
+    glPushMatrix();
+    glTranslatef(7, -1, 0);
+    glRotatef(90, 1, 0, 0);
+    glRotatef(45, 0, 0, 1);
+    base.render();
+    glPopMatrix();
+
+    glMaterialfv(GL_FRONT, GL_AMBIENT, SILVER_AMBIENT);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, SILVER_DIFFUSE);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, SILVER_SPECULAR);
+    glMaterialf(GL_FRONT, GL_SHININESS, 8.0);
+
+    glPushMatrix();
+    glTranslatef(-8.5, -1, 0);
+    glRotatef(90, 1, 0, 0);
+    glRotatef(45, 0, 0, 1);
+    base.render();
+    glPopMatrix();
+
+    glMaterialfv(GL_FRONT, GL_AMBIENT, SILVER_AMBIENT);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, SILVER_DIFFUSE);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, SILVER_SPECULAR);
+    glMaterialf(GL_FRONT, GL_SHININESS, 8.0);
+
     /* Half Pipe */
     render_HalfPipe();
     /* HalfPipe ends */
@@ -295,6 +758,24 @@ void win_refresh (GLFWwindow *win) {
     render_skateBoard();
     /*SkateBoard End*/
 
+    boarder_cf = board_cf * glm::translate(glm::vec3{0,.45,0});
+    render_boarder();
+
+    glMaterialfv(GL_FRONT, GL_AMBIENT, BLACKRUBBER_AMBIENT);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, BLACKRUBBER_DIFFUSE);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, BLACKRUBBER_SPECULAR);
+    glMaterialf(GL_FRONT, GL_SHININESS, 80.0);
+
+    glPushMatrix();
+    glTranslatef(-7.5,-1.0,0);
+    glRotatef(90,0,1,0);
+    glRotatef(-45,1,0,0);
+    gluCylinder(rails,0.05,0.05,2.2,10,10);
+    glTranslatef(-1,0,0);
+    gluCylinder(rails,0.05,0.05,2.2,10,10);
+    glTranslatef(2,0,0);
+    gluCylinder(rails,0.05,0.05,2.2,10,10);
+    glPopMatrix();
     /* must swap buffer at the end of render function */
     glfwSwapBuffers(win);
 }
@@ -323,19 +804,99 @@ void key_handler (GLFWwindow *win, int key, int scan_code, int action, int mods)
     }
     else {
         switch (key) {
-            case GLFW_KEY_W:
+//            case GLFW_KEY_SPACE:
+//                glPolygonMode(GL_FRONT, GL_LINE);
+//                break;
+//            case GLFW_KEY_C:
+//                camera_cf = camera_cf * glm::translate(glm::vec3{-5, -5, 5});
+//                break;
+//            case GLFW_KEY_S:
+//                camera_cf = board_cf* glm::translate(glm::vec3{0, 0, -2});
+//                camera_cf *= glm::rotate(1.57f, glm::vec3{1,0,0});
+//                break
+            case GLFW_KEY_ESCAPE:
+                exit(0);
+            case GLFW_KEY_0:
+                active = &light0_cf;
+                if (glIsEnabled(GL_LIGHT0))
+                    glDisable(GL_LIGHT0);
+                else
+                    glEnable(GL_LIGHT0);
+                break;
+            case GLFW_KEY_1:
+                active = &light1_cf;
+                if (glIsEnabled(GL_LIGHT1))
+                    glDisable(GL_LIGHT1);
+                else
+                    glEnable(GL_LIGHT1);
+                break;
+            case GLFW_KEY_DOWN:
+                SKATEBOARD_SPEED -= 0.1;
+                break;
+            case GLFW_KEY_UP:
+                SKATEBOARD_SPEED += 0.1;
+                break;
+            case GLFW_KEY_BACKSPACE:
                 glPolygonMode(GL_FRONT, GL_LINE);
                 break;
-            case GLFW_KEY_C:
-                camera_cf = camera_cf * glm::translate(glm::vec3{-5, -5, 5});
+            case GLFW_KEY_F:
+                go_forward = true;
                 break;
-            case GLFW_KEY_S:
-                camera_cf = board_cf* glm::translate(glm::vec3{0, 0, -2});
-                camera_cf *= glm::rotate(1.57f, glm::vec3{1,0,0});
-                break;
-            case GLFW_KEY_SPACE:
+            case GLFW_KEY_ENTER:
                 is_anim_running ^= true;
                 break;
+            case GLFW_KEY_L:
+                camera_cf *= glm::translate(glm::vec3{-1,0,0});
+                break;
+            case GLFW_KEY_J:
+                camera_cf *= glm::translate(glm::vec3{1,0,0});
+                break;
+            case GLFW_KEY_I:
+                camera_cf *= glm::translate(glm::vec3{0,1,0});
+                break;
+            case GLFW_KEY_K:
+                camera_cf *= glm::translate(glm::vec3{0,-1,0});
+                break;
+            case GLFW_KEY_M:
+                camera_cf *= glm::translate(glm::vec3{0,0,1});
+                break;
+            case GLFW_KEY_N:
+                camera_cf *= glm::translate(glm::vec3{0,0,-1});
+                break;
+            case GLFW_KEY_Z:
+                camera_cf *= glm::rotate(0.314f, glm::vec3{1,0,0});
+                break;
+            case GLFW_KEY_X:
+                camera_cf *= glm::rotate(0.314f, glm::vec3{0,1,0});
+                break;
+            case GLFW_KEY_C:
+                camera_cf *= glm::rotate(0.314f, glm::vec3{0,0,1});
+                break;
+            case GLFW_KEY_8:
+                camera_cf = glm::translate(glm::vec3{0, 0, -5});
+                light0_cf = glm::translate(glm::vec3{10, 10, 10});
+                light1_cf = glm::translate(glm::vec3{-10, 10, 10});
+                light1_cf = light1_cf * glm::rotate (glm::radians(120.0f), glm::vec3{1,0,0});
+                break;
+            case GLFW_KEY_2:
+                light0_cf *= glm::translate(glm::vec3{1,0,0});
+                break;
+            case GLFW_KEY_3:
+                light0_cf  *= glm::translate(glm::vec3{0,1,0});
+                break;
+            case GLFW_KEY_4:
+                light0_cf  *= glm::translate(glm::vec3{0,0,1});
+                break;
+            case GLFW_KEY_5:
+                light1_cf *= glm::translate(glm::vec3{1,0,0});
+                break;
+            case GLFW_KEY_6:
+                light1_cf  *= glm::translate(glm::vec3{0,1,0});
+                break;
+            case GLFW_KEY_7:
+                light1_cf  *= glm::translate(glm::vec3{0,0,1});
+                break;
+
 
         }
     }
@@ -407,19 +968,60 @@ void init_gl() {
     glEnable(GL_CULL_FACE);
     glLineWidth(3.0);
 
+    /* Enable shading */
+    glEnable (GL_LIGHTING);
+    glEnable (GL_NORMALIZE); /* Tell OpenGL to renormalize normal vector
+                              after transformation */
+    /* initialize two light sources */
+    glEnable (GL_LIGHT0);
+    glLightfv (GL_LIGHT0, GL_AMBIENT, light0_color);
+    glLightfv (GL_LIGHT0, GL_DIFFUSE, light0_color);
+    glLightfv (GL_LIGHT0, GL_SPECULAR, light0_color);
+    glEnable (GL_LIGHT1);
+    glLightfv (GL_LIGHT1, GL_AMBIENT, light1_color);
+    glLightfv (GL_LIGHT1, GL_DIFFUSE, light1_color);
+    glLightfv (GL_LIGHT1, GL_SPECULAR, light1_color);
+    glLightf (GL_LIGHT1, GL_SPOT_CUTOFF, 40);
+
+    //glEnableClientState(GL_VERTEX_ARRAY);
+
     /* place the camera at Z=+5 (notice that the sign is OPPOSITE!) */
     camera_cf *= glm::translate(glm::vec3{0, 0, -5});
+    light0_cf = glm::translate(glm::vec3{10, 10, 10});
+    light1_cf = glm::translate(glm::vec3{-10, 10, 10});
+    light1_cf = light1_cf * glm::rotate (glm::radians(120.0f), glm::vec3{1,0,0});
 }
 
 void make_model() {
-    board_cf = glm::translate( glm::vec3{0,-0.95,0});
-    pipe.build(0.5, 3, 1, 0.6, 0.6, 0.6, 0.02);
-    base.build(3.0/1.414, 0, 3.0/1.414, 0, 0, 4, 0.6, 0.6, 0.6, 0.02);
+    sphere.build(15, 20);
+    spot.build(1 + tan(glm::radians(40.0f)), 1, 2);
 
-    wheels.build(0.045, 0.01, 0.045, 0.04, 0.04, 30, 0.9, 0.3, 0.4, 1);
-    truckAxle.build(0.01 , 0.01, .2, 20, 0.4, 0.4, 0.2);
-    truckBase.build(.055 , .055, .05, 4, 0.4, 0.1, 0.2);
-    deck.build(0.65, 0.03 , 0.2, 0.65 , 0.03, 0.1, 0.1, 0, 0.2);
+    boarder_cf = glm::translate(glm::vec3{16,-0.5,0});
+    board_cf = glm::translate( glm::vec3{16,-0.95,0});
+    temp_floor.build(40,40,0.01,40,40);
+    ramp.build(3,0.5,1,3,3);
+    pipe.build(0.5, 3, 1);
+    base.build(3.0/1.414, 0, 3.0/1.414, 0, 0, 4);
+
+    wheels.build(0.045, 0.01, 0.045, 0.04, 0.04, 30);
+    truckAxle.build(0.01 , 0.01, .2, 20);
+    truckBase.build(.055 , .055, .05, 4);
+    deck.build(0.65, 0.03 , 0.2, 0.65 , 0.03);
+    block.build(3,1,3,3,1);
+    stair1.build(0.5,0.8,3,0.5,0.8);
+    stair2.build(0.5,0.6,3,0.5,0.6);
+    stair3.build(0.5,0.4,3,0.5,0.4);
+    stair4.build(0.5,0.2,3,0.5,0.2);
+
+
+    body.build(0.12,0.1,0.30,20);
+    head.build(0.16,0.16,0.16,0.10,0.10);
+    back_arm.build(0.06,0.04,0.20,20);
+
+    gluQuadricOrientation (rails, GLU_OUTSIDE);
+    gluQuadricNormals (rails, GLU_SMOOTH);
+
+
 }
 
 int main() {

@@ -4,12 +4,12 @@
 GenericObject2::~GenericObject2() {
     glDeleteBuffers(1, &vertex_buffer);
     glDeleteBuffers(1, &index_buffer);
-    glDeleteBuffers(1, &color_buffer);
+    glDeleteBuffers(1, &normal_buffer);
 }
 
 void GenericObject2::build(float pouter_top_radius, float pinner_top_radius,
         float pouter_bottom_radius, float pinner_bottom_radius,
-        float pheight, int pnum_sides, float clr1, float clr2, float clr3, float shiny_quotient) {
+        float pheight, int pnum_sides) {
     outer_top_radius = pouter_top_radius;
     inner_top_radius = pinner_top_radius;
     outer_bottom_radius = pouter_bottom_radius;
@@ -19,7 +19,7 @@ void GenericObject2::build(float pouter_top_radius, float pinner_top_radius,
 
     glGenBuffers(1, &vertex_buffer);
     glGenBuffers(1, &index_buffer);
-    glGenBuffers(1, &color_buffer);
+    glGenBuffers(1, &normal_buffer);
 
     float theta = 2 * M_PI/(num_sides);
 
@@ -29,12 +29,16 @@ void GenericObject2::build(float pouter_top_radius, float pinner_top_radius,
         vertices.push_back(outer_top_radius * cos(angle));
         vertices.push_back(outer_top_radius * sin(angle));
         vertices.push_back(height/2);
-        color.push_back (clr1);
-        color.push_back (clr2);
-        color.push_back (clr3);
-        clr1 -= shiny_quotient*0.01;
-        clr2 -= shiny_quotient*0.01;
-        clr3 -= shiny_quotient*0.01;
+        normals.push_back(outer_top_radius * cos(angle)/(sqrt(outer_top_radius * cos(angle)*outer_top_radius * cos(angle) +
+                        outer_top_radius * sin(angle) * outer_top_radius * sin(angle) +
+                        height/2 * height/2)));
+        normals.push_back(outer_top_radius * sin(angle)/(sqrt(outer_top_radius * cos(angle)*outer_top_radius * cos(angle) +
+                outer_top_radius * sin(angle) * outer_top_radius * sin(angle) +
+                height/2 * height/2)));
+        normals.push_back(height/(2*sqrt(outer_top_radius * cos(angle)*outer_top_radius * cos(angle) +
+                outer_top_radius * sin(angle) * outer_top_radius * sin(angle) +
+                height/2 * height/2)));
+
         angle += theta;
     }
 
@@ -43,12 +47,16 @@ void GenericObject2::build(float pouter_top_radius, float pinner_top_radius,
         vertices.push_back(inner_top_radius * cos(angle));
         vertices.push_back(inner_top_radius * sin(angle));
         vertices.push_back(height/2);
-        color.push_back (clr1);
-        color.push_back (clr2);
-        color.push_back (clr3);
-        clr1 -= shiny_quotient*0.01;
-        clr2 -= shiny_quotient*0.01;
-        clr3 -= shiny_quotient*0.01;
+        normals.push_back(inner_top_radius * cos(angle)/(sqrt(inner_top_radius * cos(angle)*inner_top_radius * cos(angle) +
+                inner_top_radius * sin(angle) * inner_top_radius * sin(angle) +
+                height/2 * height/2)));
+        normals.push_back(inner_top_radius * sin(angle)/(sqrt(inner_top_radius * cos(angle)*inner_top_radius * cos(angle) +
+                inner_top_radius * sin(angle) * inner_top_radius * sin(angle) +
+                height/2 * height/2)));
+        normals.push_back(height/(2*sqrt(inner_top_radius * cos(angle)*inner_top_radius * cos(angle) +
+                inner_top_radius * sin(angle) * inner_top_radius * sin(angle) +
+                height/2 * height/2)));
+
         angle  += theta;
     }
 
@@ -57,12 +65,16 @@ void GenericObject2::build(float pouter_top_radius, float pinner_top_radius,
         vertices.push_back(outer_bottom_radius * cos(angle));
         vertices.push_back(outer_bottom_radius  * sin(angle));
         vertices.push_back(-height/2);
-        color.push_back (clr1);
-        color.push_back (clr2);
-        color.push_back (clr3);
-        clr1 -= shiny_quotient*0.01;
-        clr2 -= shiny_quotient*0.01;
-        clr3 -= shiny_quotient*0.01;
+        normals.push_back(outer_top_radius * cos(angle)/(sqrt(outer_top_radius * cos(angle)*outer_top_radius * cos(angle) +
+                outer_top_radius * sin(angle) * outer_top_radius * sin(angle) +
+                height/2 * height/2)));
+        normals.push_back(outer_top_radius * sin(angle)/(sqrt(outer_top_radius * cos(angle)*outer_top_radius * cos(angle) +
+                outer_top_radius * sin(angle) * outer_top_radius * sin(angle) +
+                height/2 * height/2)));
+        normals.push_back(-height/(2*sqrt(outer_top_radius * cos(angle)*outer_top_radius * cos(angle) +
+                outer_top_radius * sin(angle) * outer_top_radius * sin(angle) +
+                height/2 * height/2)));
+
         angle += theta;
     }
 
@@ -71,34 +83,32 @@ void GenericObject2::build(float pouter_top_radius, float pinner_top_radius,
         vertices.push_back(inner_bottom_radius  * cos(angle));
         vertices.push_back(inner_bottom_radius  * sin(angle));
         vertices.push_back(-height/2);
-        color.push_back (clr1);
-        color.push_back (clr2);
-        color.push_back (clr3);
-        clr1 -= shiny_quotient*0.01;
-        clr2 -= shiny_quotient*0.01;
-        clr3 -= shiny_quotient*0.01;
+        normals.push_back(inner_top_radius * cos(angle)/(sqrt(inner_top_radius * cos(angle)*inner_top_radius * cos(angle) +
+                inner_top_radius * sin(angle) * inner_top_radius * sin(angle) +
+                height/2 * height/2)));
+        normals.push_back(inner_top_radius * sin(angle)/(sqrt(inner_top_radius * cos(angle)*inner_top_radius * cos(angle) +
+                inner_top_radius * sin(angle) * inner_top_radius * sin(angle) +
+                height/2 * height/2)));
+        normals.push_back(-height/(2*sqrt(inner_top_radius * cos(angle)*inner_top_radius * cos(angle) +
+                inner_top_radius * sin(angle) * inner_top_radius * sin(angle) +
+                height/2 * height/2)));
+
         angle += theta;
     }
 
     vertices.push_back(0);
     vertices.push_back(0);
     vertices.push_back(height/2);
-    clr1 -= shiny_quotient*0.01;
-    clr2 -= shiny_quotient*0.01;
-    clr3 -= shiny_quotient*0.01;
-    color.push_back (clr1);
-    color.push_back (clr2);
-    color.push_back (clr3);
+    normals.push_back(0.0);
+    normals.push_back(0.0);
+    normals.push_back(1.0f);
 
     vertices.push_back(0);
     vertices.push_back(0);
     vertices.push_back(-height/2);
-    clr1 -= shiny_quotient*0.01;
-    clr2 -= shiny_quotient*0.01;
-    clr3 -= shiny_quotient*0.01;
-    color.push_back (clr1);
-    color.push_back (clr2);
-    color.push_back (clr3);
+    normals.push_back(0.0);
+    normals.push_back(0.0);
+    normals.push_back(-1.0f);
 
     for (int k = num_sides - 1; k > -1; k--){
         indices.push_back(k);
@@ -131,12 +141,12 @@ void GenericObject2::build(float pouter_top_radius, float pinner_top_radius,
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
 
-    glBindBuffer (GL_ARRAY_BUFFER, color_buffer);
-    glBufferData (GL_ARRAY_BUFFER,
-            color.size() * sizeof(GLfloat), color.data(), GL_STATIC_DRAW);
-
-    glUnmapBuffer(GL_ARRAY_BUFFER);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer (GL_ARRAY_BUFFER, normal_buffer);
+    /* allocate in GPU and copy from CPU */
+    glBufferData (GL_ARRAY_BUFFER, normals.size() * sizeof(float),
+            normals.data(), GL_STATIC_DRAW);
+    /* deselect the buffer */
+    glBindBuffer (GL_ARRAY_BUFFER, 0);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLushort),indices.data(), GL_STATIC_DRAW);
@@ -146,11 +156,12 @@ void GenericObject2::build(float pouter_top_radius, float pinner_top_radius,
 
 void GenericObject2::render() const {
     glPushAttrib(GL_ENABLE_BIT);
-    //glDisableClientState(GL_COLOR_ARRAY);
+    glDisableClientState(GL_COLOR_ARRAY);
+    glEnableClientState(GL_NORMAL_ARRAY);
     glBindBuffer (GL_ARRAY_BUFFER, vertex_buffer);
     glVertexPointer(3, GL_FLOAT, 0, 0);
-    glBindBuffer (GL_ARRAY_BUFFER, color_buffer);
-    glColorPointer(3, GL_FLOAT, 0, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, normal_buffer);
+    glNormalPointer(GL_FLOAT, 0, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);

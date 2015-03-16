@@ -9,10 +9,10 @@ using namespace std;
 class GenericObject1 {
 
 private:
-    GLuint vertex_buffer, index_buffer, color_buffer;
+    GLuint vertex_buffer, index_buffer, normal_buffer;
     vector<float> vertices;
     vector<GLushort> indices;
-    vector<GLfloat> color;
+    vector<GLfloat> normals;
 
 public:
     int num_sides;
@@ -20,7 +20,7 @@ public:
     float bottom_radius;
     float height;
     ~GenericObject1();
-    void build (float l, float b, float h, int num, float clr1, float clr2, float clr3);
+    void build (float l, float b, float h, int num);
     void render() const;
 };
 #endif

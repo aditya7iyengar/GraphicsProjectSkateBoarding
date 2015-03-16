@@ -17,8 +17,7 @@ private:
 
 public:
     ~HalfPipe();
-    void build (float length_up, float breadth, float height,
-            float clr1, float clr2, float clr3, float ref_quotient);
+    void build (float length_up, float breadth, float height);
     void render() const;
 };
 #endif
