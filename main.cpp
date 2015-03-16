@@ -452,6 +452,7 @@ void render_skateBoard(){
 
     glPushMatrix();
     glTranslatef(-0.55,0,0);
+
     glPushMatrix();
     glTranslatef(0.3,0 ,0.1);
     wheels.render();
@@ -648,7 +649,32 @@ void win_refresh (GLFWwindow *win) {
     glVertex3f (0, 0, S * 1.1);
     glEnd();
 
+<<<<<<< HEAD
     glDisable (GL_COLOR_MATERIAL);
+=======
+    glPushMatrix();
+    glRotatef(-90, 1, 0, 0);
+    glTranslatef(0, 0, -1.001);
+    glEnable (GL_COLOR_MATERIAL);
+    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+
+    glColor3ub (29, 100, 56);
+
+    glBegin (GL_QUADS);
+    const int GROUND_SIZE = 10;
+    glNormal3f (0.0f, 0.0f, 1.0f); /* normal vector for the ground */
+    glVertex2i (GROUND_SIZE, GROUND_SIZE);
+    glNormal3f (0.0f, 0.0f, 1.0f); /* normal vector for the ground */
+    glVertex2i (-GROUND_SIZE, GROUND_SIZE);
+    glNormal3f (0.0f, 0.0f, 1.0f); /* normal vector for the ground */
+    glVertex2i (-GROUND_SIZE, -GROUND_SIZE);
+    glNormal3f (0.0f, 0.0f, 1.0f); /* normal vector for the ground */
+    glVertex2i (GROUND_SIZE, -GROUND_SIZE);
+    glEnd();
+    glDisable (GL_COLOR_MATERIAL);
+    glPopMatrix();
+
+>>>>>>> origin/master
     /* The following two groups of GL_LINE_LOOP and GL_LINES draw the square block
      * whose 4 vertices make the tetrahedron */
 
@@ -778,6 +804,8 @@ void win_refresh (GLFWwindow *win) {
     glPopMatrix();
     /* must swap buffer at the end of render function */
     glfwSwapBuffers(win);
+
+
 }
 
 
@@ -804,6 +832,7 @@ void key_handler (GLFWwindow *win, int key, int scan_code, int action, int mods)
     }
     else {
         switch (key) {
+<<<<<<< HEAD
 //            case GLFW_KEY_SPACE:
 //                glPolygonMode(GL_FRONT, GL_LINE);
 //                break;
@@ -817,19 +846,27 @@ void key_handler (GLFWwindow *win, int key, int scan_code, int action, int mods)
             case GLFW_KEY_ESCAPE:
                 exit(0);
             case GLFW_KEY_0:
+=======
+            case GLFW_KEY_1:
+>>>>>>> origin/master
                 active = &light0_cf;
                 if (glIsEnabled(GL_LIGHT0))
                     glDisable(GL_LIGHT0);
                 else
                     glEnable(GL_LIGHT0);
                 break;
+<<<<<<< HEAD
             case GLFW_KEY_1:
+=======
+            case GLFW_KEY_2:
+>>>>>>> origin/master
                 active = &light1_cf;
                 if (glIsEnabled(GL_LIGHT1))
                     glDisable(GL_LIGHT1);
                 else
                     glEnable(GL_LIGHT1);
                 break;
+<<<<<<< HEAD
             case GLFW_KEY_DOWN:
                 SKATEBOARD_SPEED -= 0.1;
                 break;
@@ -837,6 +874,9 @@ void key_handler (GLFWwindow *win, int key, int scan_code, int action, int mods)
                 SKATEBOARD_SPEED += 0.1;
                 break;
             case GLFW_KEY_BACKSPACE:
+=======
+            case GLFW_KEY_W:
+>>>>>>> origin/master
                 glPolygonMode(GL_FRONT, GL_LINE);
                 break;
             case GLFW_KEY_F:
@@ -970,8 +1010,13 @@ void init_gl() {
 
     /* Enable shading */
     glEnable (GL_LIGHTING);
+<<<<<<< HEAD
     glEnable (GL_NORMALIZE); /* Tell OpenGL to renormalize normal vector
                               after transformation */
+=======
+    glEnable (GL_NORMALIZE);
+    // /* Tell OpenGL to renormalize normal vector after transformation */
+>>>>>>> origin/master
     /* initialize two light sources */
     glEnable (GL_LIGHT0);
     glLightfv (GL_LIGHT0, GL_AMBIENT, light0_color);
@@ -981,9 +1026,13 @@ void init_gl() {
     glLightfv (GL_LIGHT1, GL_AMBIENT, light1_color);
     glLightfv (GL_LIGHT1, GL_DIFFUSE, light1_color);
     glLightfv (GL_LIGHT1, GL_SPECULAR, light1_color);
+<<<<<<< HEAD
     glLightf (GL_LIGHT1, GL_SPOT_CUTOFF, 40);
 
     //glEnableClientState(GL_VERTEX_ARRAY);
+=======
+    glLightf (GL_LIGHT1, GL_SPOT_CUTOFF, 10);
+>>>>>>> origin/master
 
     /* place the camera at Z=+5 (notice that the sign is OPPOSITE!) */
     camera_cf *= glm::translate(glm::vec3{0, 0, -5});
